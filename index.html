@@ -1,0 +1,79 @@
+<html>
+<!--
+	Copyright 2012  Varun Verma  (email : varunverma@varunverma.org)
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License, version 2, as 
+    published by the Free Software Foundation.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+-->
+
+<head>
+
+<!-- Include the jQuery Library -->  
+<link rel="stylesheet" href="http://code.jquery.com/ui/1.10.2/themes/smoothness/jquery-ui.css" />
+<script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+<script src="http://code.jquery.com/ui/1.10.2/jquery-ui.js"></script>
+
+
+<!-- My jQuery Functions -->
+<script>
+
+$(document).ready(function(){
+	
+	// Clear Page
+	$("#clear-output").click(function(){
+		$("#output").empty();
+	});
+	
+	// Date Picker
+	$( "#date-picker" ).datepicker({dateFormat: 'dd-mm-yy'});
+	
+	// Generate Pending Queries for Lookup Date
+	$("#generate-pending-queries").click(function(){
+		
+		var train_no = $("#train-no").val();
+		var lu_date = $("#date-picker").val();
+		var secret_key = $("#secret-key").val();
+		var code = "Pending-Queries";
+		$.post("INR-Utility.php", {code:code,pwd:secret_key,train_no:train_no,lu_date:lu_date},
+		function(data,status){
+			$("#output").append("<br>---------------");
+			$("#output").append(data);
+		});
+		
+	});
+	
+});
+
+</script>
+
+</head>
+
+<body>
+
+<p>Secret Key: <input type="password" id="secret-key">
+
+
+<p>Train No: <input type="text" id="train-no">
+Lookup Date: <input type="text" id="date-picker" name="lookup-date"/>
+<button id="generate-pending-queries">Generate Pending Queries</button></p>
+
+<br>
+<p><button id="clear-output">Clear Output Message Area</button></p>
+
+<br />
+<div id="output">
+</div>
+
+</body>
+
+</html>
