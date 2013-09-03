@@ -1,19 +1,3 @@
-<!--
-	Copyright 2012  Varun Verma  (email : varunverma@varunverma.org)
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License, version 2, as 
-    published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
--->
 <?php
 
 require_once( 'config.php' );
@@ -46,6 +30,128 @@ function createPendingEntries($train_no,$lu_date){
 		$result = mysql_query($sql, $linkID);
 	
 	}
+}
+
+function getPendingQueries(){
+	
+	global $linkID;
+	
+	$sql = "select distinct TrainNo from pendingqueries where status = 'New'";
+	$result = mysql_query($sql, $linkID);
+	
+	$row = mysql_fetch_assoc($result);
+	$train_no = $row['TrainNo'];
+	
+	$sql = "call getPendingQueries('$train_no')";
+	$result = mysql_query($sql, $linkID);
+	
+	$output = array();
+	
+	while($row = mysql_fetch_assoc($result)) {
+		$output[] = $row;
+	}
+	
+	// Return the result
+	return $output;
+}
+
+function saveAvailabilityData($availData){
+	
+	global $linkID;
+	
+	foreach ($availData as $availDataRow){
+		
+		// The input
+		$trainNo = $availDataRow['TrainNo'];
+		$travelDate = $availDataRow['JourneyDate'];
+		$lookupDate = $availDataRow['LookupDate'];
+		$Class = $availDataRow['JClass'];
+		$Availability = $availDataRow['Availability'];
+		
+		// Get Previous Date
+		$ydt = strtotime("-1 days", strtotime($lookupDate));
+		$yesterday = date("Y-m-d", $ydt);
+		
+		// Select RAC Quota
+		$quotaSQL = "SELECT * FROM trainquota where TrainNo = '$trainNo' and Class = '$Class'";
+		$quotaResult = mysql_query($quotaSQL, $linkID);
+		$quotaRow = mysql_fetch_assoc($quotaResult);
+		
+		$RACQuota = $quotaRow['RACQuota'];
+		
+		// Calculate Avail on Absolute Scale !
+		$grossAvType = $availDataRow['GrossAvType'];
+		$grossAvCount = $availDataRow['GrossAvCount'];
+		$netAvType = $availDataRow['NetAvType'];
+		$netAvCount = $availDataRow['NetAvCount'];
+		
+		if($grossAvType == "RAC"){
+			$grossAvCount = 0 - $grossAvCount;
+		}
+		
+		if($grossAvType == "WL"){
+			$grossAvCount = 0 - $RACQuota - $grossAvCount;
+		}
+		
+		if($netAvType == "RAC"){
+			$netAvCount = 0 - $netAvCount;
+		}
+		
+		if($netAvType == "WL"){
+			$netAvCount = 0 - $RACQuota - $netAvCount;
+		}
+		
+		$sql = "SELECT * FROM availabilityinfo WHERE TrainNo = '$trainNo' and TravelDate = '$travelDate'".
+				"and LookupDate = '$yesterday' and Class = '$Class'";
+		
+		$result = mysql_query($sql, $linkID);
+		
+		if($result){
+		
+			$row = mysql_fetch_assoc($result);
+		
+			$YgrossAvType = $row['GrossAvType'];
+			$YgrossAvCount = $row['GrossAvCount'];
+			$YnetAvType = $row['NetAvType'];
+			$YnetAvCount = $row['NetAvCount'];
+		
+		}
+		else{
+		
+			$YgrossAvType = "";
+			$YgrossAvCount = 0;
+			$YnetAvType = "";
+			$YnetAvCount = 0;
+			
+		}
+		
+		// Bookings
+		if($YgrossAvCount > $grossAvCount){
+			$bookings = $YgrossAvCount - $grossAvCount;
+		}
+		else{
+			$bookings = 0;
+		}
+		
+		// Cancellations
+		if($YgrossAvCount < $grossAvCount){
+			$cancellations = $grossAvCount - $YgrossAvCount;
+		}
+		else{
+			$cancellations = ($YgrossAvCount - $grossAvCount) - ($YnetAvCount - $netAvCount);
+		}
+		
+		$sql = "INSERT INTO availabilityinfo ".
+				"(TrainNo,TravelDate,LookupDate,Class,Availability,GrossAvType,GrossAvCount,NetAvType,NetAvCount,Bookings,Cancellations) ".
+				"VALUES ('$trainNo','$travelDate','$lookupDate','$Class','$Availability','$grossAvType','$grossAvCount',".
+				"'$netAvType','$netAvCount','$bookings','$cancellations')";
+		
+		$result = mysql_query($sql, $linkID);
+		
+	}
+	
+	return $result;
+
 }
 
 ?>
