@@ -36,7 +36,7 @@ function getPendingQueries(){
 	
 	global $linkID;
 	
-	$sql = "select distinct TrainNo from pendingqueries where status = 'New'";
+	$sql = "select distinct TrainNo from PendingQueries where status = 'New'";
 	$result = mysql_query($sql, $linkID);
 	
 	$row = mysql_fetch_assoc($result);
@@ -73,7 +73,7 @@ function saveAvailabilityData($availData){
 		$yesterday = date("Y-m-d", $ydt);
 		
 		// Select RAC Quota
-		$quotaSQL = "SELECT * FROM trainquota where TrainNo = '$trainNo' and Class = '$Class'";
+		$quotaSQL = "SELECT * FROM TrainQuota where TrainNo = '$trainNo' and Class = '$Class'";
 		$quotaResult = mysql_query($quotaSQL, $linkID);
 		$quotaRow = mysql_fetch_assoc($quotaResult);
 		
@@ -101,19 +101,36 @@ function saveAvailabilityData($availData){
 			$netAvCount = 0 - $RACQuota - $netAvCount;
 		}
 		
-		$sql = "SELECT * FROM availabilityinfo WHERE TrainNo = '$trainNo' and TravelDate = '$travelDate'".
+		$sql = "SELECT * FROM AvailabilityInfo WHERE TrainNo = '$trainNo' and TravelDate = '$travelDate'".
 				"and LookupDate = '$yesterday' and Class = '$Class'";
 		
+		//echo $sql . "<br>";
 		$result = mysql_query($sql, $linkID);
 		
-		if($result){
-		
+		if(mysql_num_rows($result) > 0){
+			
 			$row = mysql_fetch_assoc($result);
 		
 			$YgrossAvType = $row['GrossAvType'];
 			$YgrossAvCount = $row['GrossAvCount'];
 			$YnetAvType = $row['NetAvType'];
 			$YnetAvCount = $row['NetAvCount'];
+
+			// Bookings
+			if($YgrossAvCount > $grossAvCount){
+				$bookings = $YgrossAvCount - $grossAvCount;
+			}
+			else{
+				$bookings = 0;
+			}
+		
+			// Cancellations
+			if($YgrossAvCount < $grossAvCount){
+				$cancellations = $grossAvCount - $YgrossAvCount;
+			}
+			else{
+				$cancellations = ($YgrossAvCount - $grossAvCount) - ($YnetAvCount - $netAvCount);
+			}
 		
 		}
 		else{
@@ -122,26 +139,13 @@ function saveAvailabilityData($availData){
 			$YgrossAvCount = 0;
 			$YnetAvType = "";
 			$YnetAvCount = 0;
+
+			$bookings = 0;
+			$cancellations = 0;
 			
 		}
 		
-		// Bookings
-		if($YgrossAvCount > $grossAvCount){
-			$bookings = $YgrossAvCount - $grossAvCount;
-		}
-		else{
-			$bookings = 0;
-		}
-		
-		// Cancellations
-		if($YgrossAvCount < $grossAvCount){
-			$cancellations = $grossAvCount - $YgrossAvCount;
-		}
-		else{
-			$cancellations = ($YgrossAvCount - $grossAvCount) - ($YnetAvCount - $netAvCount);
-		}
-		
-		$sql = "INSERT INTO availabilityinfo ".
+		$sql = "INSERT INTO AvailabilityInfo ".
 				"(TrainNo,TravelDate,LookupDate,Class,Availability,GrossAvType,GrossAvCount,NetAvType,NetAvCount,Bookings,Cancellations) ".
 				"VALUES ('$trainNo','$travelDate','$lookupDate','$Class','$Availability','$grossAvType','$grossAvCount',".
 				"'$netAvType','$netAvCount','$bookings','$cancellations')";

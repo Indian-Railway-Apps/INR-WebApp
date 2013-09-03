@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Sep 03, 2013 at 01:38 AM
+-- Generation Time: Sep 04, 2013 at 02:01 AM
 -- Server version: 5.5.32-0ubuntu0.13.04.1
 -- PHP Version: 5.4.9-4ubuntu2.2
 
@@ -20,6 +20,21 @@ SET time_zone = "+00:00";
 -- Database: `INR`
 --
 
+DELIMITER $$
+--
+-- Procedures
+--
+CREATE DEFINER=`root`@`localhost` PROCEDURE `getPendingQueries`(IN `train_no` VARCHAR(10))
+    READS SQL DATA
+    SQL SECURITY INVOKER
+select q.TrainNo, TravelDate, LookupDate, Class, 
+SourceCode, DestinationCode 
+from PendingQueries as q 
+inner join TrainInfo as t on q.TrainNo = t.TrainNo
+where q.TrainNo = train_no and status = 'New'$$
+
+DELIMITER ;
+
 -- --------------------------------------------------------
 
 --
@@ -33,11 +48,15 @@ CREATE TABLE IF NOT EXISTS `AvailabilityInfo` (
   `LookupDate` date NOT NULL,
   `Class` varchar(5) NOT NULL,
   `Availability` varchar(20) NOT NULL,
+  `GrossAvType` varchar(5) NOT NULL,
+  `GrossAvCount` int(11) NOT NULL,
+  `NetAvType` varchar(5) NOT NULL,
+  `NetAvCount` int(11) NOT NULL,
   `Bookings` int(11) NOT NULL,
   `Cancellations` int(11) NOT NULL,
   `ChangedOn` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`RecordNo`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=121 ;
 
 -- --------------------------------------------------------
 
