@@ -36,19 +36,39 @@ function getPendingQueries(){
 	
 	global $linkID;
 	
+	// Find a random train number
 	$sql = "select distinct TrainNo from PendingQueries where status = 'New'";
 	$result = mysql_query($sql, $linkID);
 	
 	$row = mysql_fetch_assoc($result);
 	$train_no = $row['TrainNo'];
 	
-	$sql = "call getPendingQueries('$train_no')";
+	// Get Pending Queries for that.
+	//$sql = "call getPendingQueries('$train_no')";
+	$sql = "select q.TrainNo, TravelDate, LookupDate, Class, SourceCode, DestinationCode from PendingQueries as q ".
+			"inner join TrainInfo as t on q.TrainNo = t.TrainNo where q.TrainNo = '$train_no' and status = 'New' and LookupDate = current_date";
+			
 	$result = mysql_query($sql, $linkID);
 	
 	$output = array();
 	
-	while($row = mysql_fetch_assoc($result)) {
-		$output[] = $row;
+	if(mysql_num_rows($result) > 0){
+		
+		while($row = mysql_fetch_assoc($result)) {
+			$output[] = $row;
+		}
+	
+		// Set Status to Pending
+		$now = date ("Y-m-d H:i:s");
+		$today = date ("Y-m-d");
+		$query = "UPDATE PendingQueries SET Status = 'Pending', PendingSince = '$now' ".
+					"WHERE TrainNo = '$train_no' and LookupDate = '$today'";
+		
+		mysql_query($query, $linkID);
+		
+	}
+	else{
+		
 	}
 	
 	// Return the result
@@ -64,7 +84,7 @@ function saveAvailabilityData($availData){
 		// The input
 		$trainNo = $availDataRow['TrainNo'];
 		$travelDate = $availDataRow['JourneyDate'];
-		$lookupDate = $availDataRow['LookupDate'];
+		$lookupDate = $availDataRow['LookupTimeStamp'];
 		$Class = $availDataRow['JClass'];
 		$Availability = $availDataRow['Availability'];
 		
@@ -102,7 +122,7 @@ function saveAvailabilityData($availData){
 		}
 		
 		$sql = "SELECT * FROM AvailabilityInfo WHERE TrainNo = '$trainNo' and TravelDate = '$travelDate'".
-				"and LookupDate = '$yesterday' and Class = '$Class'";
+				"and Class = '$Class' order by LookupDate desc limit 1";
 		
 		//echo $sql . "<br>";
 		$result = mysql_query($sql, $linkID);
@@ -145,6 +165,7 @@ function saveAvailabilityData($availData){
 			
 		}
 		
+		// Save Avail Data
 		$sql = "INSERT INTO AvailabilityInfo ".
 				"(TrainNo,TravelDate,LookupDate,Class,Availability,GrossAvType,GrossAvCount,NetAvType,NetAvCount,Bookings,Cancellations) ".
 				"VALUES ('$trainNo','$travelDate','$lookupDate','$Class','$Availability','$grossAvType','$grossAvCount',".
@@ -152,6 +173,13 @@ function saveAvailabilityData($availData){
 		
 		$result = mysql_query($sql, $linkID);
 		
+		// Update Pending Status
+		$luDate = date("Y-m-d", strtotime($lookupDate));
+		
+		$sql = "UPDATE PendingQueries SET Status = 'Finished' WHERE TrainNo = '$trainNo' and TravelDate = '$travelDate' ".
+				"and LookupDate = '$luDate' and Class = '$Class'";
+				
+		$result = mysql_query($sql, $linkID);
 	}
 	
 	return $result;
