@@ -15,6 +15,51 @@ function createDBConnection(){
 
 }
 
+function createPendingEntriesForDate($lu_date){
+	
+	global $linkID;
+
+	// Get Day from date
+	$day = date ("D", strtotime($lu_date));
+	$d = "0";
+
+	switch ($day) {
+	
+    		case "Mon": $d = "1"; break;
+		case "Tue": $d = "2"; break;
+		case "Wed": $d = "3"; break;
+		case "Thu": $d = "4"; break;
+		case "Fri": $d = "5"; break;
+		case "Sat": $d = "6"; break;
+		case "Sun": $d = "7"; break;
+
+	}
+
+	// Select all trains that run on this day
+	$sql = "SELECT * FROM TrainInfo WHERE RunsOn LIKE '%$d%'";
+
+	$result = mysql_query($sql, $linkID);
+
+	while($row = mysql_fetch_assoc($result)) {
+	
+		$train_no = $row['TrainNo'];
+		
+		for($i=0; $i<10; $i++){
+		
+			$days = $i * 6;
+			$dt = strtotime("+".$days." days", strtotime($lu_date));
+			$date = date("Y-m-d", $dt);
+			$luDate = date("Y-m-d", strtotime($lu_date));
+		
+			$insert = "INSERT INTO PendingQueries (TrainNo, TravelDate, LookupDate, Class, Status) VALUES ('$train_no','$date','$luDate','3A','New')";
+			mysql_query($insert, $linkID);
+	
+		}
+	
+	}
+	
+}
+
 function createPendingEntries($train_no,$lu_date){
 	
 	global $linkID;
@@ -33,6 +78,45 @@ function createPendingEntries($train_no,$lu_date){
 }
 
 function getPendingQueries(){
+
+	global $linkID;
+	
+	$today = date("Y-m-d", strtotime("now"));
+	$ps = date ("Y-m-d H:i:s", strtotime("-1 hour", strtotime("now")));	
+
+	// Get Pending Queries
+	$sql = "select q.TrainNo, TravelDate, LookupDate, Class, SourceCode, DestinationCode from PendingQueries as q ".
+		"inner join TrainInfo as t on q.TrainNo = t.TrainNo where status = 'Pending' and LookupDate = '$today' and PendingSince <= '$ps'";
+
+	$result = mysql_query($sql, $linkID);
+	
+	$output = array();
+	
+	if(mysql_num_rows($result) > 0){
+		
+		while($row = mysql_fetch_assoc($result)) {
+			$output[] = $row;
+		}
+	
+		// Set Status to Pending
+		$now = date ("Y-m-d H:i:s");
+		$today = date ("Y-m-d");
+		$query = "UPDATE PendingQueries SET Status = 'Pending', PendingSince = '$now' ".
+					"WHERE PendingSince <= '$ps' and LookupDate = '$today'";
+
+		mysql_query($query, $linkID);
+		
+	}
+	else{
+		
+	}
+	
+	// Return the result
+	return $output;
+
+}
+
+function getQueryItems(){
 	
 	global $linkID;
 	
@@ -44,9 +128,8 @@ function getPendingQueries(){
 	$train_no = $row['TrainNo'];
 	
 	// Get Pending Queries for that.
-	//$sql = "call getPendingQueries('$train_no')";
 	$sql = "select q.TrainNo, TravelDate, LookupDate, Class, SourceCode, DestinationCode from PendingQueries as q ".
-			"inner join TrainInfo as t on q.TrainNo = t.TrainNo where q.TrainNo = '$train_no' and status = 'New' and LookupDate = current_date";
+		"inner join TrainInfo as t on q.TrainNo = t.TrainNo where q.TrainNo = '$train_no' and status = 'New' and LookupDate = current_date";
 			
 	$result = mysql_query($sql, $linkID);
 	

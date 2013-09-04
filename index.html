@@ -38,13 +38,27 @@ $(document).ready(function(){
 	$( "#date-picker" ).datepicker({dateFormat: 'dd-mm-yy'});
 	
 	// Generate Pending Queries for Lookup Date
-	$("#generate-pending-queries").click(function(){
+	$("#generate-pq-train").click(function(){
 		
 		var train_no = $("#train-no").val();
 		var lu_date = $("#date-picker").val();
 		var secret_key = $("#secret-key").val();
-		var code = "Pending-Queries";
+		var code = "Pending-Queries-Train-Date";
 		$.post("INR-Utility.php", {code:code,pwd:secret_key,train_no:train_no,lu_date:lu_date},
+		function(data,status){
+			$("#output").append("<br>---------------");
+			$("#output").append(data);
+		});
+		
+	});
+
+	// Generate Pending Queries for Lookup Date
+	$("#generate-pq-date").click(function(){
+		
+		var lu_date = $("#date-picker").val();
+		var secret_key = $("#secret-key").val();
+		var code = "Pending-Queries-Date";
+		$.post("INR-Utility.php", {code:code,pwd:secret_key,lu_date:lu_date},
 		function(data,status){
 			$("#output").append("<br>---------------");
 			$("#output").append(data);
@@ -65,7 +79,9 @@ $(document).ready(function(){
 
 <p>Train No: <input type="text" id="train-no">
 Lookup Date: <input type="text" id="date-picker" name="lookup-date"/>
-<button id="generate-pending-queries">Generate Pending Queries</button></p>
+<button id="generate-pq-train">Generate Pending Queries For Train</button>
+<button id="generate-pq-date">Generate Pending Queries For Date</button>
+</p>
 
 <br>
 <p><button id="clear-output">Clear Output Message Area</button></p>
