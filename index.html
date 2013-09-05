@@ -36,6 +36,9 @@ $(document).ready(function(){
 	
 	// Date Picker
 	$( "#date-picker" ).datepicker({dateFormat: 'dd-mm-yy'});
+
+	// Date Picker
+	$( "#prob-date-picker" ).datepicker({dateFormat: 'dd-mm-yy'});
 	
 	// Generate Pending Queries for Lookup Date
 	$("#generate-pq-train").click(function(){
@@ -65,6 +68,23 @@ $(document).ready(function(){
 		});
 		
 	});
+
+	// Calculate Probability
+	$("#calculate-probability").click(function(){
+		
+		var train_no = $("#prob-train-no").val();
+		var tr_date = $("#prob-date-picker").val();
+		var tr_class = $("#prob-travel-class").val();
+		var curr_status = $("#prob-current_status").val();
+		var secret_key = $("#secret-key").val();
+		var code = "Calculate-Probability";
+		$.post("INR-Utility.php", {code:code,pwd:secret_key,tr_date:tr_date,train_no:train_no,tr_class:tr_class,curr_status:curr_status},
+		function(data,status){
+			$("#output").append("<br>---------------");
+			$("#output").append(data);
+		});
+		
+	});
 	
 });
 
@@ -77,10 +97,20 @@ $(document).ready(function(){
 <p>Secret Key: <input type="password" id="secret-key">
 
 
-<p>Train No: <input type="text" id="train-no">
+<p>
+Train No: <input type="text" id="train-no">
 Lookup Date: <input type="text" id="date-picker" name="lookup-date"/>
 <button id="generate-pq-train">Generate Pending Queries For Train</button>
 <button id="generate-pq-date">Generate Pending Queries For Date</button>
+</p>
+
+<p>
+Train No: <input type="text" id="prob-train-no"><br>
+Travel Date: <input type="text" id="prob-date-picker" name="travel-date"/><br>
+Train Class: <input type="text" id="prob-travel-class"><br>
+Current Status: <input type="text" id="prob-current-status"><br>
+<button id="calculate-probability">Calculate Probability</button>
+
 </p>
 
 <br>

@@ -269,4 +269,86 @@ function saveAvailabilityData($availData){
 
 }
 
+function createPendingEntries($train_no,$tr_date,$tr_class,$curr_status){
+	
+	global $linkID;
+
+	// Select RAC Quota
+	$quotaSQL = "SELECT * FROM TrainQuota where TrainNo = '$train_no' and Class = '$tr_class'";
+	$quotaResult = mysql_query($quotaSQL, $linkID);
+	$quotaRow = mysql_fetch_assoc($quotaResult);
+		
+	$RACQuota = $quotaRow['RACQuota'];
+
+	// Calculate the current deficit
+	$curr_status = str_replace(" ", "", $curr_status);
+
+	$currStatus = explode("/", $curr_status);
+
+	$netAvail = $currStatus[1];
+
+	if (strpos($netAvail, 'WL') !== FALSE){
+		$avType = "WL";
+		$pos = strpos($netAvail, 'WL') + 2;
+		$avCount = 0 - $RACQuota - substr($netAvail,$pos);
+	}
+
+	if (strpos($netAvail, 'RAC') !== FALSE){
+		$avType = "RAC";
+		$pos = strpos($netAvail, 'RAC') + 3;
+		$avCount = 0 - substr($netAvail,$pos);
+	}
+
+	if (strpos($netAvail, 'AVAILABLE') !== FALSE){
+		$avType = "CNF";
+		$avCount = 0;
+	}
+
+	// Calculate Date Diff
+	$now = time(); // Now
+     	$trDate = strtotime($tr_date);
+     	$diff = $now - $trDate;
+	$days = floor($diff / (24*60*60));
+
+	//$date = date("",);
+
+	$sql = "select t.TrainNo, t.Class, t.TravelDate, sum(l.Cancellations) ".
+		"from (select distinct TrainNo, Class, TravelDate from AvailabilityInfo where TrainNo = '$train_no' and Class = '$tr_class') as t ".
+		"inner join AvailabilityInfo as l on t.TrainNo = l.TrainNo and t.Class = l.class ".
+		"and t.TravelDate = l.TravelDate and l.LookupDate >= (t.TravelDate - $days) and l.LookupDate < t.TravelDate ".
+		"where t.TrainNo = '$train_no' and t.Class = '$tr_class' group by t.TrainNo, t.Class, t.TravelDate";
+
+	$result = mysql_query($sql, $linkID);
+
+	$CNF_Deficit = $avCount;
+	$RAC_Deficit = $CNF_Deficit - $RAC_Quota;
+
+	$CNF_Count = 0;
+	$RAC_Count = 0;
+	$Total = 0;
+
+	while($row = mysql_fetch_assoc($result)) {
+			
+		$cancellations = $row['Cancellations'];
+
+		if($cancellations >= $CNF_Deficit){
+			$CNF_Count++;
+		}
+
+		if($cancellations >= $RAC_Deficit){
+			$RAC_Count++;
+		}
+
+		$Total++;
+		
+	}
+	
+	$RAC_Prob = 100 * $RAC_Count / $Total;
+	$CNF_Prob = 100 * $CNF_Count / $Total;
+
+	$output = array("RAC" => $RAC_Prob, "CNF" => $CNF_Prob);
+	return $output;
+
+}
+
 ?>
