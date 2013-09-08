@@ -75,7 +75,7 @@ $(document).ready(function(){
 		var train_no = $("#prob-train-no").val();
 		var tr_date = $("#prob-date-picker").val();
 		var tr_class = $("#prob-travel-class").val();
-		var curr_status = $("#prob-current_status").val();
+		var curr_status = $("#prob-current-status").val();
 		var secret_key = $("#secret-key").val();
 		var code = "Calculate-Probability";
 		$.post("INR-Utility.php", {code:code,pwd:secret_key,tr_date:tr_date,train_no:train_no,tr_class:tr_class,curr_status:curr_status},

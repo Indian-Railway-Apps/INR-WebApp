@@ -218,7 +218,20 @@ function saveAvailabilityData($availData){
 			$YgrossAvCount = $row['GrossAvCount'];
 			$YnetAvType = $row['NetAvType'];
 			$YnetAvCount = $row['NetAvCount'];
-
+			
+			// Special Case handling
+			if($grossAvType == "REG"){
+				// Regret
+				$tmpNet = $netAvCount - $YnetAvCount;
+				if($tmpNet > 0){
+					$grossAvCount = $YgrossAvCount;
+				}
+				else{
+					$grossAvCount = $YgrossAvCount + $tmpNet;
+				}
+				
+			}
+			
 			// Bookings
 			if($YgrossAvCount > $grossAvCount){
 				$bookings = $YgrossAvCount - $grossAvCount;
@@ -246,6 +259,19 @@ function saveAvailabilityData($availData){
 			$bookings = 0;
 			$cancellations = 0;
 			
+			// Special Case handling
+			if($grossAvType == "REG"){
+				$grossAvCount = 0 - $RACQuota - 300;
+			}
+			
+		}
+		
+		// Special case
+		if($bookings < 0){
+			$bookings = 0;
+		}
+		if($cancellations < 0){
+			$cancellations = 0;
 		}
 		
 		// Save Avail Data
@@ -269,7 +295,7 @@ function saveAvailabilityData($availData){
 
 }
 
-function createPendingEntries($train_no,$tr_date,$tr_class,$curr_status){
+function calculateProbability($train_no,$tr_date,$tr_class,$curr_status){
 	
 	global $linkID;
 
@@ -286,42 +312,45 @@ function createPendingEntries($train_no,$tr_date,$tr_class,$curr_status){
 	$currStatus = explode("/", $curr_status);
 
 	$netAvail = $currStatus[1];
-
+	$avCount = 0;
+	
 	if (strpos($netAvail, 'WL') !== FALSE){
 		$avType = "WL";
 		$pos = strpos($netAvail, 'WL') + 2;
-		$avCount = 0 - $RACQuota - substr($netAvail,$pos);
+		$avCount = $RACQuota + substr($netAvail,$pos);
 	}
 
 	if (strpos($netAvail, 'RAC') !== FALSE){
 		$avType = "RAC";
 		$pos = strpos($netAvail, 'RAC') + 3;
-		$avCount = 0 - substr($netAvail,$pos);
+		$avCount = substr($netAvail,$pos);
 	}
 
 	if (strpos($netAvail, 'AVAILABLE') !== FALSE){
 		$avType = "CNF";
 		$avCount = 0;
 	}
-
+	
 	// Calculate Date Diff
 	$now = time(); // Now
-     	$trDate = strtotime($tr_date);
-     	$diff = $now - $trDate;
+    $trDate = strtotime($tr_date);
+    $diff = $trDate - $now;
 	$days = floor($diff / (24*60*60));
 
-	//$date = date("",);
+	//echo $days;
 
-	$sql = "select t.TrainNo, t.Class, t.TravelDate, sum(l.Cancellations) ".
+	$sql = "select t.TrainNo, t.Class, t.TravelDate, sum(l.Cancellations) as Cancellations ".
 		"from (select distinct TrainNo, Class, TravelDate from AvailabilityInfo where TrainNo = '$train_no' and Class = '$tr_class') as t ".
 		"inner join AvailabilityInfo as l on t.TrainNo = l.TrainNo and t.Class = l.class ".
 		"and t.TravelDate = l.TravelDate and l.LookupDate >= (t.TravelDate - $days) and l.LookupDate < t.TravelDate ".
 		"where t.TrainNo = '$train_no' and t.Class = '$tr_class' group by t.TrainNo, t.Class, t.TravelDate";
-
+	
+	echo $sql;
+	
 	$result = mysql_query($sql, $linkID);
 
 	$CNF_Deficit = $avCount;
-	$RAC_Deficit = $CNF_Deficit - $RAC_Quota;
+	$RAC_Deficit = $CNF_Deficit - $RACQuota;
 
 	$CNF_Count = 0;
 	$RAC_Count = 0;
