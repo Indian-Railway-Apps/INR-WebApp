@@ -81,8 +81,13 @@ function getPendingQueries(){
 
 	global $linkID;
 	
+	$rightNow = new DateTime();
+	$tz = new DateTimeZone('Asia/Calcutta');
+	$rightNow->setTimezone($tz);
+	$now = $rightNow->format("Y-m-d H:i:s");
+		
 	$today = date("Y-m-d", strtotime("now"));
-	$ps = date ("Y-m-d H:i:s", strtotime("-1 hour", strtotime("now")));	
+	$ps = date ("Y-m-d H:i:s", strtotime("-1 hour", strtotime($now)));	
 
 	// Get Pending Queries
 	$sql = "select q.TrainNo, TravelDate, LookupDate, Class, SourceCode, DestinationCode from PendingQueries as q ".
@@ -99,7 +104,11 @@ function getPendingQueries(){
 		}
 	
 		// Set Status to Pending
-		$now = date ("Y-m-d H:i:s");
+		$rightNow = new DateTime();
+		$tz = new DateTimeZone('Asia/Calcutta');
+		$rightNow->setTimezone($tz);
+		$now = $rightNow->format("Y-m-d H:i:s");
+
 		$today = date ("Y-m-d");
 		$query = "UPDATE PendingQueries SET Status = 'Pending', PendingSince = '$now' ".
 					"WHERE PendingSince <= '$ps' and LookupDate = '$today'";
@@ -142,7 +151,11 @@ function getQueryItems(){
 		}
 	
 		// Set Status to Pending
-		$now = date ("Y-m-d H:i:s");
+		$rightNow = new DateTime();
+		$tz = new DateTimeZone('Asia/Calcutta');
+		$rightNow->setTimezone($tz);
+		$now = $rightNow->format("Y-m-d H:i:s");
+
 		$today = date ("Y-m-d");
 		$query = "UPDATE PendingQueries SET Status = 'Pending', PendingSince = '$now' ".
 					"WHERE TrainNo = '$train_no' and LookupDate = '$today'";
