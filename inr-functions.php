@@ -121,7 +121,7 @@ function getQueryItems(){
 	global $linkID;
 	
 	// Find a random train number
-	$sql = "select distinct TrainNo from PendingQueries where status = 'New'";
+	$sql = "select distinct TrainNo from PendingQueries where status = 'New' and LookupDate = current_date";
 	$result = mysql_query($sql, $linkID);
 	
 	$row = mysql_fetch_assoc($result);
