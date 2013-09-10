@@ -3,6 +3,7 @@
 require( 'inr-functions.php' );
 
 $avail_data = $_POST['avail_data'];
+$avail_data = stripslashes($avail_data);
 
 createDBConnection();
 

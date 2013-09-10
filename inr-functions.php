@@ -18,9 +18,73 @@ function createDBConnection(){
 function createPendingEntriesForDate($lu_date){
 	
 	global $linkID;
+	
+	$d = getDayCodeFromDate($lu_date);
+
+	// Select all trains that run on this day
+	$sql = "SELECT * FROM TrainInfo WHERE RunsOn LIKE '%$d%'";
+
+	$result = mysql_query($sql, $linkID);
+
+	while($row = mysql_fetch_assoc($result)) {
+	
+		$train_no = $row['TrainNo'];
+		
+		createPendingEntries($train_no,$lu_date);
+	
+	}
+	
+}
+
+function createPendingEntries($train_no,$lu_date){
+	
+	global $linkID;
+	
+	// Find the days on which this train runs
+	$sql = "SELECT * FROM TrainInfo WHERE TrainNo = '$train_no'";
+	$result = mysql_query($sql, $linkID);
+	$row = mysql_fetch_assoc($result);
+	$daysOfRun = $row['RunsOn'];
+
+	// Lookup Date	
+	$luDate = date("Y-m-d", strtotime($lu_date));
+
+	// Look until 60 days from Lookup Date
+	$limitDate = date("Y-m-d",strtotime("+60 days", strtotime($lu_date)));
+
+	// Travel Date
+	$date = new DateTime($lu_date);
+	$trDate = $date->format('Y-m-d');
+	
+	$counter = -1;
+
+	while($trDate <= $limitDate){
+		
+		$d = getDayCodeFromDate($trDate);
+
+		// Check if this train runs on this day.
+		if (strpos($daysOfRun, $d) !== FALSE){
+			
+			$counter++;
+
+			if($counter % 6 == 0){
+
+				$sql = "INSERT INTO PendingQueries (TrainNo, TravelDate, LookupDate, Class, Status) VALUES ('$train_no','$trDate','$luDate','3A','New')";
+				$result = mysql_query($sql, $linkID);
+
+			}
+
+		}
+
+		$trDate = date("Y-m-d",strtotime("+1 days", strtotime($trDate)));
+
+	}
+}
+
+function getDayCodeFromDate($date){
 
 	// Get Day from date
-	$day = date ("D", strtotime($lu_date));
+	$day = date ("D", strtotime($date));
 	$d = "0";
 
 	switch ($day) {
@@ -35,46 +99,8 @@ function createPendingEntriesForDate($lu_date){
 
 	}
 
-	// Select all trains that run on this day
-	$sql = "SELECT * FROM TrainInfo WHERE RunsOn LIKE '%$d%'";
+	return $d;
 
-	$result = mysql_query($sql, $linkID);
-
-	while($row = mysql_fetch_assoc($result)) {
-	
-		$train_no = $row['TrainNo'];
-		
-		for($i=0; $i<10; $i++){
-		
-			$days = $i * 6;
-			$dt = strtotime("+".$days." days", strtotime($lu_date));
-			$date = date("Y-m-d", $dt);
-			$luDate = date("Y-m-d", strtotime($lu_date));
-		
-			$insert = "INSERT INTO PendingQueries (TrainNo, TravelDate, LookupDate, Class, Status) VALUES ('$train_no','$date','$luDate','3A','New')";
-			mysql_query($insert, $linkID);
-	
-		}
-	
-	}
-	
-}
-
-function createPendingEntries($train_no,$lu_date){
-	
-	global $linkID;
-
-	for($i=0; $i<10; $i++){
-		
-		$days = $i * 6;
-		$dt = strtotime("+".$days." days", strtotime($lu_date));
-		$date = date("Y-m-d", $dt);
-		$luDate = date("Y-m-d", strtotime($lu_date));
-		
-		$sql = "INSERT INTO PendingQueries (TrainNo, TravelDate, LookupDate, Class, Status) VALUES ('$train_no','$date','$luDate','3A','New')";
-		$result = mysql_query($sql, $linkID);
-	
-	}
 }
 
 function getPendingQueries(){
@@ -301,7 +327,7 @@ function saveAvailabilityData($availData){
 		$sql = "UPDATE PendingQueries SET Status = 'Finished' WHERE TrainNo = '$trainNo' and TravelDate = '$travelDate' ".
 				"and LookupDate = '$luDate' and Class = '$Class'";
 				
-		$result = mysql_query($sql, $linkID);
+		mysql_query($sql, $linkID);
 	}
 	
 	return $result;
