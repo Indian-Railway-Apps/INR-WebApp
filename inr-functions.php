@@ -117,7 +117,7 @@ function getPendingQueries(){
 
 	// Get Pending Queries
 	$sql = "select q.TrainNo, TravelDate, LookupDate, Class, SourceCode, DestinationCode from PendingQueries as q ".
-		"inner join TrainInfo as t on q.TrainNo = t.TrainNo where status = 'Pending' and LookupDate = '$today' and PendingSince <= '$ps'";
+		"inner join TrainInfo as t on q.TrainNo = t.TrainNo where Status = 'Pending' and LookupDate = '$today' and PendingSince <= '$ps'";
 
 	$result = mysql_query($sql, $linkID);
 	
@@ -137,7 +137,7 @@ function getPendingQueries(){
 
 		$today = date ("Y-m-d");
 		$query = "UPDATE PendingQueries SET Status = 'Pending', PendingSince = '$now' ".
-					"WHERE PendingSince <= '$ps' and LookupDate = '$today'";
+					"WHERE Status = 'Pending' and PendingSince <= '$ps' and LookupDate = '$today'";
 
 		mysql_query($query, $linkID);
 		
@@ -417,6 +417,23 @@ function calculateProbability($train_no,$tr_date,$tr_class,$curr_status){
 	$output = array("RAC" => $RAC_Prob, "CNF" => $CNF_Prob);
 	return $output;
 
+}
+
+function deleteOldEntries(){
+	
+	global $linkID;
+	
+	// Yesterday
+	$yesterday = date ("Y-m-d", strtotime("-1 days", strtotime("now")));
+
+	$sql = "DELETE FROM PendingQueries WHERE LookupDate < '$yesterday' AND Status = 'Finished'";
+	$result = mysql_query($sql, $linkID);
+	
+	$dby = date ("Y-m-d", strtotime("-2 days", strtotime("now")));
+
+	$sql = "DELETE FROM PendingQueries WHERE LookupDate < '$dby' AND Status = 'Pending'";
+	$result = mysql_query($sql, $linkID);
+	
 }
 
 ?>
