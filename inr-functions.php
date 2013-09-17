@@ -112,7 +112,7 @@ function getPendingQueries(){
 	$rightNow->setTimezone($tz);
 	$now = $rightNow->format("Y-m-d H:i:s");
 		
-	$today = date("Y-m-d", strtotime("now"));
+	$today = date("Y-m-d", strtotime($now));
 	$ps = date ("Y-m-d H:i:s", strtotime("-1 hour", strtotime($now)));	
 
 	// Get Pending Queries
@@ -135,7 +135,6 @@ function getPendingQueries(){
 		$rightNow->setTimezone($tz);
 		$now = $rightNow->format("Y-m-d H:i:s");
 
-		$today = date ("Y-m-d");
 		$query = "UPDATE PendingQueries SET Status = 'Pending', PendingSince = '$now' ".
 					"WHERE Status = 'Pending' and PendingSince <= '$ps' and LookupDate = '$today'";
 
@@ -154,9 +153,18 @@ function getPendingQueries(){
 function getQueryItems(){
 	
 	global $linkID;
+
+	$rightNow = new DateTime();
+	$tz = new DateTimeZone('Asia/Calcutta');
+	$rightNow->setTimezone($tz);
+	$now = $rightNow->format("Y-m-d H:i:s");
+		
+	$today = date("Y-m-d", strtotime($now));
 	
 	// Find a random train number
-	$sql = "select distinct TrainNo from PendingQueries where status = 'New' and LookupDate = current_date";
+	$sql = "select distinct q.TrainNo from PendingQueries as q inner join TrainInfo as t on q.TrainNo = t.TrainNo ".
+		"where status = 'New' and LookupDate = '$today' order by t.ChartingTime";
+
 	$result = mysql_query($sql, $linkID);
 	
 	$row = mysql_fetch_assoc($result);
@@ -164,7 +172,7 @@ function getQueryItems(){
 	
 	// Get Pending Queries for that.
 	$sql = "select q.TrainNo, TravelDate, LookupDate, Class, SourceCode, DestinationCode from PendingQueries as q ".
-		"inner join TrainInfo as t on q.TrainNo = t.TrainNo where q.TrainNo = '$train_no' and status = 'New' and LookupDate = current_date";
+		"inner join TrainInfo as t on q.TrainNo = t.TrainNo where q.TrainNo = '$train_no' and status = 'New' and LookupDate = '$today'";
 			
 	$result = mysql_query($sql, $linkID);
 	
@@ -182,7 +190,6 @@ function getQueryItems(){
 		$rightNow->setTimezone($tz);
 		$now = $rightNow->format("Y-m-d H:i:s");
 
-		$today = date ("Y-m-d");
 		$query = "UPDATE PendingQueries SET Status = 'Pending', PendingSince = '$now' ".
 					"WHERE TrainNo = '$train_no' and LookupDate = '$today'";
 		

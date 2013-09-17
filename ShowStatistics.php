@@ -14,13 +14,26 @@ $database = DB_NAME;
 $linkID = mysql_connect($host, $user, $pass) or die("Could not connect to host.");
 mysql_select_db($database, $linkID) or die("Could not find database.");
 
-$today = date("Y-m-d",strtotime("now"));
+$date = $_GET['date'];
+if($date == ""){
+	
+	$rightNow = new DateTime();
+	$tz = new DateTimeZone('Asia/Calcutta');
+	$rightNow->setTimezone($tz);
+	$now = $rightNow->format("Y-m-d H:i:s");
+		
+	$date = date("Y-m-d", strtotime($now));
+
+}
+
 
 // Get Stats
-$sql = "SELECT TrainNo, Status, Count(*) AS C FROM PendingQueries WHERE LookupDate = '$today' GROUP BY TrainNo, Status";
+$sql = "SELECT q.TrainNo, q.Status, Count(*) AS C FROM PendingQueries as q INNER JOIN TrainInfo as t on q.TrainNo = t.TrainNo".
+	" WHERE LookupDate = '$date' GROUP BY TrainNo, Status order by t.ChartingTime";
+
 $result = mysql_query($sql, $linkID);
 
-echo $today . "<br>";
+echo $date . "<br>";
 
 while($row = mysql_fetch_assoc($result)) {
 	
